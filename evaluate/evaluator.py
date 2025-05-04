@@ -62,13 +62,44 @@ class Evaluator:
                 #rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, num_logits_to_keep=1, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = [tokenizer.decode(rets[0][prompt.input_ids.shape[-1]:], skip_special_tokens=True)]
-                for (pred, gt, classes) in zip(rets, dataset.gt[i*bsz:(i+1)*bsz], dataset.classes[i*bsz:(i+1)*bsz]):
+                for (pred, gt, classes) in zip(rets, dataset.gt[i], dataset.classes[i]):
                     scores.append(max([dataset.metric(pred, g, classes) for g in gt]))
+            elif 'multiturn' in dataset.dataset_name:
+                rets = []
+
+                # 1. Initial prompt
+                context_input_ids = prompt["input_ids"].to(llm.device)
+                context_attention_mask = prompt["attention_mask"].to(llm.device)
+
+                # 2. Multi-turm queries
+                queries = dataset.tokenized_queries[i]
+                for query in queries:
+                    # TODO(max410011): Check it missing <bos> & <eos> token will affect the result
+                    input_ids = torch.cat([context_input_ids, query["input_ids"].to(llm.device)], dim=-1)  
+                    attention_mask = torch.cat([context_attention_mask, query["attention_mask"].to(llm.device)], dim=-1)
+
+                    ret = llm.generate(input_ids=input_ids, attention_mask=attention_mask, max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, do_sample=False, pad_token_id=tokenizer.eos_token_id)
+
+                    generate_ids = ret[0][input_ids.shape[-1]:]
+                    # FIXME(max410011): Mutli-turn answers are not separated
+                    rets.append(tokenizer.decode(generate_ids, skip_special_tokens=True))
+
+                    # Update context for next query
+                    context_input_ids = torch.cat([input_ids, generate_ids.unsqueeze(0)], dim=-1)
+                    context_attention_mask = torch.cat([attention_mask, torch.ones_like(generate_ids).unsqueeze(0)], dim=-1)
+                    
+                # Save the results
+                for (pred, gt) in zip(rets, dataset.gt[i]):
+                    if isinstance(gt, list):
+                        if len(gt) == 1:
+                            gt = gt[0]
+                    scores.append(dataset.metric(pred, gt))
+                
             else:
                 #rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, num_logits_to_keep=1, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = [tokenizer.decode(rets[0][prompt.input_ids.shape[-1]:], skip_special_tokens=True)]
-                for (pred, gt) in zip(rets, dataset.gt[i*bsz:(i+1)*bsz]):
+                for (pred, gt) in zip(rets, dataset.gt[i]):
                     if isinstance(gt, list):
                         if len(gt) == 1:
                             gt = gt[0]
@@ -81,7 +112,7 @@ class Evaluator:
 
             preds = {
                     "prediction": rets,
-                    "ground_truth": dataset.gt[i*bsz:(i+1)*bsz],
+                    "ground_truth": dataset.gt[i],
                     "correct": scores,
                     "avg_score": avg_score,
                     "rank": self.dist_config.rank,

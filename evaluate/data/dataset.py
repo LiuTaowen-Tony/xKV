@@ -144,6 +144,8 @@ class Dataset:
             self.tokenized_prompts, self.gt, self.ctx_len, self.depth_pct = self.get_dataset()
         elif 'long_bench' in dataset_name:
             self.tokenized_prompts, self.gt, self.classes = self.get_dataset()
+        elif 'multiturn' in dataset_name:
+            self.tokenized_prompts, self.tokenized_queries, self.gt = self.get_dataset()
         else:
             self.tokenized_prompts, self.gt = self.get_dataset()
         
@@ -241,16 +243,34 @@ class Dataset:
             else:
                 self.num_samples = len(dataset)
             tokenized_prompts = []
+            tokenized_queries = []
             gt = []
 
-            for i in range(self.num_samples):
-                input_text = dataset[i]['input']
-                #input_ids = self.tokenizer.encode(input_text, return_tensors="pt", add_special_tokens=False)
-                input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
-                tokenized_prompts.append(input_ids)
-                gt.append(dataset[i]['outputs'])
+            if 'multiturn' in self.dataset_name:
+                for i in range(self.num_samples):
+                    input_text = dataset[i]['input']
+                    #input_ids = self.tokenizer.encode(input_text, return_tensors="pt", add_special_tokens=False)
+                    input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
+                    tokenized_prompts.append(input_ids)
+                    tokenized_query_list = []
+                    for query in dataset[i]['queries']:
+                        query_ids = self.tokenizer(query, return_tensors="pt", add_special_tokens=False)
+                        tokenized_query_list.append(query_ids)
+                    
+                    tokenized_queries.append(tokenized_query_list)
+                    gt.append(dataset[i]['answers'])
+                    
+                return tokenized_prompts, tokenized_queries, gt
+            else:
+                for i in range(self.num_samples):
+                    input_text = dataset[i]['input']
+                    #input_ids = self.tokenizer.encode(input_text, return_tensors="pt", add_special_tokens=False)
+                    input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
+                    tokenized_prompts.append(input_ids)
+                    gt.append(dataset[i]['outputs'])
 
-            return tokenized_prompts, gt
+                return tokenized_prompts, gt
+        
         elif 'long_bench' in self.dataset_name:
             task = self.dataset_name.split('/')[-1]
             dataset = load_dataset('THUDM/LongBench', task, split='test')
