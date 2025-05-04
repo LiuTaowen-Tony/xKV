@@ -255,11 +255,13 @@ def generate_consecutive_layer_groups(
     start_layer: int,
     end_layer: int,
     group_size: int,
+    stride: int = 1,
 ) -> List[LayerGroup]:
     """
     Chunk layers from [start_layer..end_layer] into consecutive groups
     of size 'group_size'. For example, if start=0, end=5, group_size=2,
-    you get groups [0,1], [2,3], [4,5].
+    stride=1, you get groups [0,1], [2,3], [4,5]. If start=3, end=15,
+    group_size=2, stride=4, you get groups [3,7], [11,15].
     
     By default, rank_k/rank_v/slerp_t/slerp_gamma are None here.
     They will be filled (or remain None) during xKVConfig.__post_init__.
@@ -267,8 +269,8 @@ def generate_consecutive_layer_groups(
     groups = []
     current = start_layer
     while current <= end_layer:
-        grp_end = min(current + group_size - 1, end_layer)
-        groups.append(LayerGroup(layers=list(range(current, grp_end + 1))))
+        grp_end = min(current + group_size * stride - 1, end_layer)
+        groups.append(LayerGroup(layers=list(range(current, grp_end + 1, stride))))
         current = grp_end + 1
     return groups
 
