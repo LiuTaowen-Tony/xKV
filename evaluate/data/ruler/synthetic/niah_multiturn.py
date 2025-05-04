@@ -29,6 +29,7 @@ import wonderwords
 from nemo.collections.asr.parts.utils.manifest_utils import read_manifest, write_manifest
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")) 
+from tokenizer import select_tokenizer
 from nltk.tokenize import sent_tokenize
 
 
@@ -38,6 +39,7 @@ parser.add_argument("--save_dir", type=Path, required=True, help='dataset folder
 parser.add_argument("--save_name", type=str, required=True, help='name of the save dataset jsonl file')
 parser.add_argument("--subset", type=str, default='validation', help='Options: validation or test')
 parser.add_argument("--tokenizer_path", type=str, required=True, help='path to the tokenizer model')
+parser.add_argument("--tokenizer_type",  type=str, default='hf', help='[Options] nemo, hf, openai.')
 parser.add_argument("--max_seq_length", type=int, required=True, help='max sequence length including all input tokens and generated tokens.')
 parser.add_argument("--tokens_to_generate", type=int, required=True, help='expected generated token amount.')
 parser.add_argument("--num_samples", type=int, required=True, help='number of samples to generate')
@@ -61,8 +63,7 @@ np.random.seed(args.random_seed)
 args.num_needle_k = max(args.num_needle_k, args.num_needle_q)
 
 # Load Tokenizer
-from transformers import AutoTokenizer
-TOKENIZER = AutoTokenizer.from_pretrained(args.tokenizer_path, use_fast=True, legacy=False, trust_remote_code=True)
+TOKENIZER = select_tokenizer(args.tokenizer_type, args.tokenizer_path)
 
 # Define Needle/Haystack Format 
 needle = "One of the special magic {type_needle_v} for {key} is: {value}."
@@ -129,6 +130,15 @@ def generate_random(type_needle: str):
     else:
         raise NotImplementedError(f'{args.type_needle} is not implemented.')
 
+def adjust_template(template: str) -> str:
+    return (
+        template
+        .replace('Some', 'A')
+        .replace('are all', 'is')
+        .replace('are', 'is')
+        .replace('answers', 'answer')
+    )
+
 def generate_input_output(num_haystack):
     keys, values, needles = [], [], []
     for _ in range(args.num_needle_k):
@@ -185,24 +195,22 @@ def generate_input_output(num_haystack):
     query = ', '.join(queries[:-1]) + ', and ' + queries[-1] if len(queries) > 1 else queries[0]
     queries_list = []
 
+    template = args.template_context
     template_query = args.template_query
-    if args.num_needle_v > 1:
-        template_query = """What are the special magic {type_needle_v} for {query} mentioned in the provided text? There are {num_needle_v} special magic {type_needle_v} for it, please list all of them. The special magic {type_needle_v} for {query} mentioned in the provided text are """
+    type_needle_v = args.type_needle_v
+    if args.num_needle_v == 1:
+        template = adjust_template(template)
+        template_query = adjust_template(template_query)
+        type_needle_v = type_needle_v[:-1] # remove "s"
 
-        for query in queries:
-            queries_list.append(template_query.format(
-                type_needle_v=args.type_needle_v,
-                query=query,
-                num_needle_v=args.num_needle_v,
-            ))
-    else:
-        for query in queries:
-            queries_list.append(template_query.format(
-                type_needle_v=args.type_needle_v,
-                query=query,
-            ))
+    # template_query = """What are the special magic {type_needle_v} for {query} mentioned in the provided text? There are {num_needle_v} special magic {type_needle_v} for it, please list all of them. The special magic {type_needle_v} for {query} mentioned in the provided text are """
+    for query in queries:
+        queries_list.append(template_query.format(
+            type_needle_v=args.type_needle_v,
+            query=query,
+        ))
 
-    input_text = args.template_context.format(
+    input_text = template.format(
         type_needle_v=args.type_needle_v,
         context=context,
     )
@@ -229,8 +237,10 @@ def generate_samples(num_samples: int, max_seq_length: int, save_dir: str, incre
     total_tokens = 0  # Track the total tokens generated for the first example
     while total_tokens + tokens_to_generate < max_seq_length :  
         input_text, queries, answers = generate_input_output(num_haystack)
+        flat_answers = [item for sublist in answers for item in sublist]
         # Calculate the number of tokens in the example
-        total_tokens = len(TOKENIZER.tokenize(input_text))
+        # total_tokens = len(TOKENIZER.tokenize(input_text))
+        total_tokens = len(TOKENIZER.text_to_tokens(input_text + ' '.join(queries) + ' '.join(flat_answers)))
         print(f'Max length {max_seq_length} | Current length {total_tokens + tokens_to_generate} | Haystack: {num_haystack}')
         if total_tokens + tokens_to_generate > max_seq_length:
             num_haystack -= incremental
@@ -249,13 +259,18 @@ def generate_samples(num_samples: int, max_seq_length: int, save_dir: str, incre
         used_haystack = num_haystack
         while(True):
             try:
+                # print('generating sample:', index)
                 input_text, queries, answers  = generate_input_output(used_haystack)
-                length = len(TOKENIZER.tokenize(input_text)) + tokens_to_generate
+                # length = len(TOKENIZER.tokenize(input_text)) + tokens_to_generate
+                length = len(TOKENIZER.text_to_tokens(input_text)) + tokens_to_generate
+                # print(f'Index: {index} | Max length {max_seq_length} | Current length {length} | Haystack: {used_haystack}')
                 assert length <= max_seq_length, f"{length} exceeds max_seq_length."
                 break
             except:
                 if used_haystack > incremental:
                     used_haystack -= incremental
+                # else:
+                #     raise ValueError(f"Failed to generate sample {index} with haystack size {used_haystack}.")
         
         if args.remove_newline_tab:
             input_text = ' '.join(input_text.replace('\n', ' ').replace('\t', ' ').strip().split())
