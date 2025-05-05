@@ -126,8 +126,10 @@ if __name__ == '__main__':
         archive_path = os.path.join("temporary", model_name.split('/')[-1])
         if not args.xKV:
             file_name = f"{dataset_name}_{datalen}.jsonl"
+        elif args.layer_merge_impl == "slerp":
+            file_name = f"{dataset_name}_{datalen}_minicache_{args.start_layer_idx}_to_{args.end_layer_idx}.jsonl"
         else:
-            file_name = f"{dataset_name}_{datalen}_xKV.jsonl"
+            file_name = f"{dataset_name}_{datalen}_xKV-{args.layer_group_size}_k{args.rank_k}_v{args.rank_v}.jsonl"
         archive_path = os.path.join(archive_path, file_name)
         evaluator.test(model, tokenizer, dataset, archive_path)
         
