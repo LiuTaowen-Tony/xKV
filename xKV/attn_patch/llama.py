@@ -35,7 +35,7 @@ def xKV_llama_forward(
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
-        is_prefill = q_len > 1 # assume auto-regressive
+        is_prefill = q_len > 128 # assume auto-regressive, set 128 for multi-turn #FIXME
         #NOTE(brian1009): Skip the RoPE on key and only apply onto query for now.
         query_states, _ = apply_rotary_pos_emb(query_states, query_states, cos, sin)
         
