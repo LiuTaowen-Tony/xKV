@@ -97,7 +97,9 @@ def add_common_args(parser: argparse.ArgumentParser):
     parser.add_argument('--model_name_or_path', type=str, help='model to load')
     parser.add_argument('--flash2', action='store_true', help='whether to use flash-attention2')
     parser.add_argument('--xKV', action='store_true', help='whether to enable xKV patch')
-    
+    parser.add_argument('--snapKV', action='store_true', help='whether to enable snapKV patch')
+
+
     # online svd options
     # SVD-related parameters
     parser.add_argument("--rank_k", type=int, default=256, help="Rank for SVD compression of keys")

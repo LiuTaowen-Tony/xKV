@@ -1,0 +1,3 @@
+[submodule "3rdparty/MInference"]
+	path = 3rdparty/MInference
+	url = git@github.com:microsoft/MInference.git

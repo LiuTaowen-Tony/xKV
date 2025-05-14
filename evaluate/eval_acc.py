@@ -120,16 +120,24 @@ if __name__ == '__main__':
     if args.xKV:
         from utils import apply_kv_compress_patch
         model = apply_kv_compress_patch(model, args)
+
+    if args.snapKV:
+        from minference import MInference
+        minference_patch = MInference(attn_type="dense", model_name=model_name, kv_type="snapkv")
+        model = minference_patch(model)
     
     for dataset_name in dataset_names:
         dataset = Dataset(dataset_name, tokenizer, datalen, num_samples, evaluator.dist_config.rank, evaluator.dist_config.world_size)
         archive_path = os.path.join("temporary", model_name.split('/')[-1])
-        if not args.xKV:
-            file_name = f"{dataset_name}_{datalen}.jsonl"
-        elif args.layer_merge_impl == "slerp":
-            file_name = f"{dataset_name}_{datalen}_minicache_{args.start_layer_idx}_to_{args.end_layer_idx}.jsonl"
+        if args.xKV:
+            if args.layer_merge_impl == "slerp":
+                file_name = f"{dataset_name}_{datalen}_minicache_{args.start_layer_idx}_to_{args.end_layer_idx}.jsonl"
+            else:
+                file_name = f"{dataset_name}_{datalen}_xKV-{args.layer_group_size}_k{args.rank_k}_v{args.rank_v}.jsonl"
+        elif args.snapKV:
+            file_name = f"{dataset_name}_{datalen}_snapKV.jsonl"
         else:
-            file_name = f"{dataset_name}_{datalen}_xKV-{args.layer_group_size}_k{args.rank_k}_v{args.rank_v}.jsonl"
+            file_name = f"{dataset_name}_{datalen}.jsonl"
         archive_path = os.path.join(archive_path, file_name)
         evaluator.test(model, tokenizer, dataset, archive_path)
         

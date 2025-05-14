@@ -119,7 +119,7 @@ class Evaluator:
                 #rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, num_logits_to_keep=1, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = llm.generate(**(prompt.to(llm.device)), max_new_tokens=dataset.gen_len, top_p=1.0, temperature=0.0, do_sample=False, pad_token_id=tokenizer.eos_token_id)
                 rets = [tokenizer.decode(rets[0][prompt.input_ids.shape[-1]:], skip_special_tokens=True)]
-                for (pred, gt) in zip(rets, dataset.gt[i]):
+                for (pred, gt) in zip(rets, dataset.gt[i*bsz:(i+1)*bsz]):
                     if isinstance(gt, list):
                         if len(gt) == 1:
                             gt = gt[0]
@@ -132,7 +132,7 @@ class Evaluator:
 
             preds = {
                     "prediction": rets,
-                    "ground_truth": dataset.gt[i],
+                    "ground_truth": dataset.gt[i*bsz:(i+1)*bsz],
                     "correct": scores,
                     "avg_score": avg_score,
                     "rank": self.dist_config.rank,
