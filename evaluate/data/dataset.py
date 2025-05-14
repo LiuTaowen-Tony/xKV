@@ -168,6 +168,9 @@ class Dataset:
             start = rank * shard_size
             end = start + shard_size if rank != world_size - 1 else self.num_samples
             shard_tokenized_prompts, shard_gt = self.tokenized_prompts[start:end], self.gt[start:end]
+            if 'multiturn' in self.dataset_name:
+                shard_tokenized_queries = self.tokenized_queries[start:end]
+                self.tokenized_queries = shard_tokenized_queries
             self.tokenized_prompts = shard_tokenized_prompts
             self.gt = shard_gt
             self.num_samples = len(shard_tokenized_prompts)
@@ -249,7 +252,6 @@ class Dataset:
             if 'multiturn' in self.dataset_name:
                 for i in range(self.num_samples):
                     input_text = dataset[i]['input']
-                    #input_ids = self.tokenizer.encode(input_text, return_tensors="pt", add_special_tokens=False)
                     input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
                     tokenized_prompts.append(input_ids)
                     tokenized_query_list = []
@@ -259,12 +261,10 @@ class Dataset:
                     
                     tokenized_queries.append(tokenized_query_list)
                     gt.append(dataset[i]['answers'])
-                    
                 return tokenized_prompts, tokenized_queries, gt
             else:
                 for i in range(self.num_samples):
                     input_text = dataset[i]['input']
-                    #input_ids = self.tokenizer.encode(input_text, return_tensors="pt", add_special_tokens=False)
                     input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
                     tokenized_prompts.append(input_ids)
                     gt.append(dataset[i]['outputs'])
