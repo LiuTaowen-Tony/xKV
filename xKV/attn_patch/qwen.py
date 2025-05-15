@@ -34,7 +34,7 @@ def xKV_qwen2_forward(
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
-        is_prefill = past_key_value is None or past_key_value.get_seq_length() == 0
+        is_prefill = past_key_value is None or past_key_value.get_seq_length(self.layer_idx) == 0
         #NOTE(brian1009): Skip the RoPE on key and only apply onto query for now.
         query_states, _ = apply_rotary_pos_emb(query_states, query_states, cos, sin)
 
