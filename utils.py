@@ -98,6 +98,7 @@ def add_common_args(parser: argparse.ArgumentParser):
     parser.add_argument('--flash2', action='store_true', help='whether to use flash-attention2')
     parser.add_argument('--xKV', action='store_true', help='whether to enable xKV patch')
     parser.add_argument('--snapKV', action='store_true', help='whether to enable snapKV patch')
+    parser.add_argument('--p_q1', action='store_true', help='whether to combine prompt and 1st query in multi-turn NIAH.')
 
 
     # online svd options

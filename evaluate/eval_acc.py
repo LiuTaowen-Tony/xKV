@@ -146,7 +146,7 @@ if __name__ == '__main__':
         else:
             file_name = f"{dataset_name}_{datalen}.jsonl"
         archive_path = os.path.join(archive_path, file_name)
-        evaluator.test(model, tokenizer, dataset, archive_path)
+        evaluator.test(model, tokenizer, dataset, archive_path, p_q1=args.p_q1)
         
         stats = evaluator.all_stats[-1]
         benchmark_name = dataset_name.split('/')[-2]

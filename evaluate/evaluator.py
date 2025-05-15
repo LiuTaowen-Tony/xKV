@@ -35,7 +35,8 @@ class Evaluator:
         # init final report
         self.all_stats = []
 
-    def test(self, llm, tokenizer, dataset: Dataset, output_path: str, setting: str = 'baseline'):
+    @torch.no_grad()
+    def test(self, llm, tokenizer, dataset: Dataset, output_path: str, setting: str = 'baseline', p_q1: bool = False):
 
         # mkdir if not exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -67,10 +68,17 @@ class Evaluator:
             elif 'niah_multiturn' in dataset.dataset_name:
                 # 1. Initial context (prefill and compress)
                 # NOTE(max410011): Use `generate` to get compressed KV-cache by calling `_prepare_cache_for_generation`
+                
+                if p_q1:
+                    query = dataset.tokenized_queries[i][0]
+                    prompt["input_ids"] = torch.cat([prompt["input_ids"], query["input_ids"]], dim=1)
+                    prompt["attention_mask"] = torch.cat([prompt["attention_mask"], query["attention_mask"]], dim=1)
+                    dataset.tokenized_queries[i] = dataset.tokenized_queries[i][1:]
+                
                 first_ret = llm.generate(
                     **(prompt.to(llm.device)),
                     return_dict_in_generate=True,
-                    max_new_tokens=dataset.gen_len,
+                    max_new_tokens=10,
                     top_p=1.0, 
                     temperature=0.0,
                     do_sample=False,
@@ -82,7 +90,8 @@ class Evaluator:
                 # Store the first response
                 first_generated_ids = first_ret.sequences[0, prompt.input_ids.shape[-1]:]
                 first_response = tokenizer.decode(first_generated_ids, skip_special_tokens=True)
-                rets = [[first_response]]
+                
+                rets = [[first_response]] if p_q1 else []
                 # 2. Multi-turn queries
                 for query in dataset.tokenized_queries[i]:
                     generated = []
@@ -90,12 +99,11 @@ class Evaluator:
                     # NOTE(max410011): Reduece gen_len to speed up, you may need longer gen_len for other tasks
                     # for step in range(dataset.gen_len):
                     for _ in range(10):
-                        with torch.no_grad():
-                            output = llm(
-                                input_ids=cur_input,
-                                past_key_values=past_key_values,
-                                return_dict=True,
-                            )
+                        output = llm(
+                            input_ids=cur_input,
+                            past_key_values=past_key_values,
+                            return_dict=True,
+                        )
 
                         next_token_logits = output.logits[:, -1, :]  # (B, vocab_size)
                         next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)  # greedy decoding
@@ -112,7 +120,7 @@ class Evaluator:
                     rets.append([tokenizer.decode(generated_ids[0], skip_special_tokens=True)])
                 
                 # Save the results
-                for (pred, gt) in zip(rets, dataset.gt[i]):
+                for (pred, gt) in zip(rets, dataset.gt[i]): # NOTE(max410011): Not support bsz > 1 for now
                     if isinstance(gt, list):
                         if len(gt) == 1:
                             gt = gt[0]

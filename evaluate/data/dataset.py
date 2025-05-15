@@ -221,7 +221,7 @@ class Dataset:
     def get_dataset(self):
         if 'ruler' in self.dataset_name: # ruler/xxx
             task = self.dataset_name.split('/')[-1]
-            assert self.datalen in [8*1024, 16*1024, 32*1024, 64*1024, 128*1024, 256*1024], "Only support datalen of 16k, 32k, 64k, 128k"
+            assert self.datalen in [2*1024, 8*1024, 16*1024, 32*1024, 64*1024, 128*1024, 256*1024], "Only support datalen of 16k, 32k, 64k, 128k"
 
             if 'llama-3' in self.tokenizer.name_or_path.lower():
                 model_dir = 'llama-3'
@@ -253,14 +253,15 @@ class Dataset:
                 for i in range(self.num_samples):
                     input_text = dataset[i]['input']
                     # Combine the first query with the input text and tokenize them jointly
-                    first_query = dataset[i]['queries'][0]
-                    combined_text = input_text + first_query
-                    input_ids = self.tokenizer(combined_text, return_tensors="pt", add_special_tokens=False)
+                    # first_query = dataset[i]['queries'][0]
+                    # combined_text = input_text + first_query
+                    input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
                     tokenized_prompts.append(input_ids)
                     
                     # Process remaining queries (if any)
                     tokenized_query_list = []
-                    for query in dataset[i]['queries'][1:]:
+                    # for query in dataset[i]['queries'][1:]:
+                    for query in dataset[i]['queries']:
                         query_ids = self.tokenizer(query, return_tensors="pt", add_special_tokens=False)
                         tokenized_query_list.append(query_ids)
                     
