@@ -40,17 +40,16 @@ cd xKV
 ```
 
 2. Prepare environment
+To run the code in this project, first, create a Python virtual environment using e.g. uv. To install uv, follow the [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/).
 ```
-conda create -n xKV python=3.10
-conda activate xKV
-
-# cuda-toolkit (optional if your system doesn't have it)
-conda install -y nvidia/label/cuda-12.4.0::cuda-toolkit
-conda install -y nvidia::cuda-cudart-dev
-
-# install dependency
-pip install -r requirements.txt
-pip install flash-attn==2.7.4.post1 --no-build-isolation
+uv venv --python 3.11 && source .venv/bin/activate && uv pip install --upgrade pip
+```
+Next, install dependency
+```
+git submodule update --init --recursive
+uv pip install -r requirements.txt
+uv pip install flash-attn==2.7.4.post1 --no-build-isolation
+uv pip install -e 3rdparty/MInference
 ```
 
 3. Create Datasets (for RULER evaluation only)

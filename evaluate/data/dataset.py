@@ -252,10 +252,15 @@ class Dataset:
             if 'multiturn' in self.dataset_name:
                 for i in range(self.num_samples):
                     input_text = dataset[i]['input']
-                    input_ids = self.tokenizer(input_text, return_tensors="pt", add_special_tokens=False)
+                    # Combine the first query with the input text and tokenize them jointly
+                    first_query = dataset[i]['queries'][0]
+                    combined_text = input_text + first_query
+                    input_ids = self.tokenizer(combined_text, return_tensors="pt", add_special_tokens=False)
                     tokenized_prompts.append(input_ids)
+                    
+                    # Process remaining queries (if any)
                     tokenized_query_list = []
-                    for query in dataset[i]['queries']:
+                    for query in dataset[i]['queries'][1:]:
                         query_ids = self.tokenizer(query, return_tensors="pt", add_special_tokens=False)
                         tokenized_query_list.append(query_ids)
                     

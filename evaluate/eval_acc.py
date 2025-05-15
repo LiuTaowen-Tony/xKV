@@ -123,7 +123,14 @@ if __name__ == '__main__':
 
     if args.snapKV:
         from minference import MInference
-        minference_patch = MInference(attn_type="dense", model_name=model_name, kv_type="snapkv")
+        minference_patch = MInference(
+            attn_type="dense", 
+            model_name=model_name, 
+            kv_type="snapkv",
+            attn_kwargs={
+                "max_capacity_prompt": 8192
+            }
+        )
         model = minference_patch(model)
     
     for dataset_name in dataset_names:

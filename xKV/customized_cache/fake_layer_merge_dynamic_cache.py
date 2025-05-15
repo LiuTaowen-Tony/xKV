@@ -137,8 +137,6 @@ class FakeLayerMergingCache(DynamicCache):
             if self._should_merge(layer_idx):
                 self.grouped_layer_merging(layer_idx)
             
-            
-            
             group_info = self.merge_setup.get_group_for_layer(layer_idx)
             if group_info is not None: # grouped founded      
                 if layer_idx == group_info.layers[-1]: # last layer in the group
