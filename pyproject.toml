@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xkv"
+version = "0.1.0"
+description = "xKV: Cross-Layer SVD for KV-Cache Compression"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "datasets>=2.10.0",
+    "numpy>=1.21.0",
+    "tqdm>=4.64.0",
+    "loguru>=0.6.0",
+    "pydantic>=1.10.0",
+    "pyyaml>=6.0",
+    "scipy>=1.9.0",
+    "matplotlib>=3.5.0",
+    "pandas>=1.5.0",
+    "nltk>=3.8",
+    "einops>=0.6.0",
+    "accelerate>=0.2.0",
+]
+
+[project.optional-dependencies]
+train = [
+    "pytorch-lightning>=2.0.0",
+    "torchmetrics>=0.11.0",
+    "wandb>=0.15.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+]
+
+[tool.setuptools]
+packages = ["xKV", "train", "evaluate"]
+
+# ==================== PYTEST CONFIGURATION ====================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=xKV",
+    "--cov=train",
+    "--cov=evaluate",
+    "--cov-report=term-missing",
+]
+markers = [
+    "slow: marks tests as slow",
+    "gpu: marks tests that require GPU",
+    "integration: marks tests as integration tests",
+]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# ==================== CODE FORMATTING ====================
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 100

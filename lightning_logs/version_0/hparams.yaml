@@ -1,0 +1,36 @@
+compressor_type: dual1d_convolutional
+config: !!python/object:train.model.Dual1DConvolutionalCompressorConfig
+  __dict__:
+    activation: gelu
+    dropout_rate: 0.1
+    hidden_channels: 256
+    hidden_dim: 2048
+    kernel_size: 3
+    kv_dim: 512
+    layer_stride: 2
+    num_layers: 16
+    seq_stride: 2
+    use_activation: true
+    use_layer_norm: true
+    use_residual: true
+  __pydantic_extra__: null
+  __pydantic_fields_set__: !!set
+    activation: null
+    dropout_rate: null
+    hidden_channels: null
+    hidden_dim: null
+    kernel_size: null
+    kv_dim: null
+    layer_stride: null
+    num_layers: null
+    seq_stride: null
+    use_activation: null
+    use_layer_norm: null
+    use_residual: null
+  __pydantic_private__: null
+learning_rate: 0.0001
+loss_weights: null
+max_steps: -1
+use_vae: false
+warmup_steps: 1000
+weight_decay: 1.0e-05

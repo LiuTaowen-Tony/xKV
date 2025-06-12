@@ -12,18 +12,10 @@ from torch.utils.data import DataLoader
 import argparse
 import os
 
-# Import existing modules
-try:
-    from .kv_lightning_module import KVCompressorLightningModule
-    from .kv_dataset import KVCacheDataset
-    from .model import Dual1DConvolutionalCompressorConfig
-    from .utils import load_model_and_tokenizer, print_model_info
-except ImportError:
-    # Fallback for direct execution
-    from kv_lightning_module import KVCompressorLightningModule
-    from kv_dataset import KVCacheDataset
-    from model import Dual1DConvolutionalCompressorConfig
-    from utils import load_model_and_tokenizer, print_model_info
+from .kv_lightning_module import KVCompressorLightningModule
+from .kv_dataset import KVCacheDataset
+from .model import Dual1DConvolutionalCompressorConfig
+from .utils import load_model_and_tokenizer, print_model_info
 
 torch.set_float32_matmul_precision('medium')
 
