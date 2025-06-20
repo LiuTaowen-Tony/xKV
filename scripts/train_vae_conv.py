@@ -14,7 +14,7 @@ from pytorch_lightning.loggers import WandbLogger
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from .model import VAEConvolutionalCompressorConfig
+from .compressor import VAEConvolutionalCompressorConfig
 from .kv_lightning_module import KVCompressorLightningModule
 from .kv_dataset import KVDataModule
 

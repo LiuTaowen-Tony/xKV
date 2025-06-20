@@ -3,22 +3,90 @@ import einops
 import torch
 from pydantic import BaseModel
 from typing import Literal, Tuple
+from typing_extensions import TypeAlias
+
+# import typealias
 
 
+# type alias for uncompressed per layer cache [b, s, h]
+UncompressedPerLayerCache: TypeAlias = torch.Tensor
+
+# type alias for uncompressed all layer cache list[tensor[b, s, h]]
+UncompressedAllLayerCache: TypeAlias = list[torch.Tensor]
+
+# [b, l, s, h]
+UncompressedK: TypeAlias = torch.Tensor
+# [b, l, s, h]
+UncompressedV: TypeAlias = torch.Tensor
+# [b, l, s, h]
+UncompressedKVConcat: TypeAlias = torch.Tensor
+
+# [b, l, s, h]
+CompressedKVConcat: TypeAlias = torch.Tensor
+
+# [b, l, s, h]
+DecompressedK: TypeAlias = torch.Tensor
+DecompressedV: TypeAlias = torch.Tensor
+DecompressedKVConcat: TypeAlias = torch.Tensor
+
+KVUncompressedPair: TypeAlias = tuple[UncompressedPerLayerCache, UncompressedAllLayerCache]
+
+
+COMPRESSED_KV_LAYER_DIM = 1
+COMPRESSED_KV_SEQ_DIM = 2
+COMPRESSED_KV_HIDDEN_DIM = 3
+
+UNCOMPRESSED_PER_LAYER_SEQ_DIM = 1
+UNCOMPRESSED_PER_LAYER_HIDDEN_DIM = 2
+
+UNCOMPRESSED_ALL_LAYER_LAYER_DIM = 0
+UNCOMPRESSED_ALL_LAYER_SEQ_DIM = 2
+UNCOMPRESSED_ALL_LAYER_HIDDEN_DIM = 3
 
 
 class KVCompressor(abc.ABC, torch.nn.Module):
+
+    def __init__(self, compression_seq_window: int):
+        super().__init__()
+        self.compression_seq_window = compression_seq_window
     
-    @abc.abstractmethod
     def compress(self, k_tensor, v_tensor):
+        kv_tensor = self.prepare_kv_tensor(k_tensor, v_tensor)
+        compressed_kv_tensor = self._compress(kv_tensor)
+        return compressed_kv_tensor
+
+    def decompress(self, compressed_kv_tensor):
+        decompressed_kv_tensor = self._decompress(compressed_kv_tensor)
+        return self.split_decompressed_kv_tensor(decompressed_kv_tensor)
+
+    @abc.abstractmethod
+    def _compress(self, kv_tensor: UncompressedKVConcat) -> CompressedKVConcat:
         pass
 
     @abc.abstractmethod
-    def decompress(self, compressed_kv_tensor):
+    def _decompress(self, compressed_kv_tensor: CompressedKVConcat) -> UncompressedKVConcat:
         pass
 
+    def prepare_kv_tensor(self, keys: list[torch.Tensor], values: list[torch.Tensor]) -> torch.Tensor:
+        # input shape list[tensor[batch_size, seq_len, hidden_dim]]
+        # output shape [batch_size, num_layers, seq_len, hidden_dim]
+        # first concat on layer dimension
+        keys = torch.cat(keys, dim=1)
+        values = torch.cat(values, dim=1)
+        # then concat on hidden dimension
+        return torch.cat([keys, values], dim=-1)
 
+    def split_decompressed_kv_tensor(self, compressed_kv_tensor: torch.Tensor) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+        # input shape [batch_size, num_layers, seq_len, hidden_dim]
+        # output shape list[tensor[batch_size, seq_len, hidden_dim]]
+        # split on layer dimension
+        keys = compressed_kv_tensor[:, :, :, :self.hidden_dim]
+        values = compressed_kv_tensor[:, :, :, self.hidden_dim:]
 
+        # split on layer dimension
+        keys = torch.split(keys, 1, dim=1)
+        values = torch.split(values, 1, dim=1)
+        return keys, values
 
 
 class Mish(torch.nn.Module):

@@ -2,8 +2,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
 from torch.utils.data import DataLoader
-from .utils import load_model_and_tokenizer
-from .kv_visualizer import KVVisualizer
+from .utils.utils import load_model_and_tokenizer
+from .utils.kv_visualizer import KVVisualizer
 
 
 class KVCacheCollector:

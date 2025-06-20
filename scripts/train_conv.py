@@ -13,8 +13,8 @@ import argparse
 
 # Import our modules using relative imports
 from .kv_cache_collector import KVCacheCollector
-from .model import ConvolutionalCompressor, ConvolutionalCompressorConfig
-from .utils import load_model_and_tokenizer, print_model_info
+from .compressor import ConvolutionalCompressor, ConvolutionalCompressorConfig
+from .utils.utils import load_model_and_tokenizer, print_model_info
 from .kv_lightning_module import KVCompressorLightningModule
 from .kv_dataset import KVCacheDataset
 torch.set_float32_matmul_precision('medium')

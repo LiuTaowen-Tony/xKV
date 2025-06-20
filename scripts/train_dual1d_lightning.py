@@ -14,8 +14,8 @@ import os
 
 from .kv_lightning_module import KVCompressorLightningModule
 from .kv_dataset import KVCacheDataset
-from .model import Dual1DConvolutionalCompressorConfig
-from .utils import load_model_and_tokenizer, print_model_info
+from .compressor import Dual1DConvolutionalCompressorConfig
+from .utils.utils import load_model_and_tokenizer, print_model_info
 
 torch.set_float32_matmul_precision('medium')
 
@@ -67,9 +67,9 @@ def run_activation_ablation(args, model, tokenizer):
         
         print(f"  - Theoretical compression: {theoretical_compression_ratio:.1f}x")
         try:
-            from .model import Dual1DConvolutionalCompressor
+            from .compressor import Dual1DConvolutionalCompressor
         except ImportError:
-            from model import Dual1DConvolutionalCompressor
+            from src.compressor import Dual1DConvolutionalCompressor
         print(f"  - Model parameters: {sum(p.numel() for p in Dual1DConvolutionalCompressor(config).parameters()):,}")
         
         # Create dataset

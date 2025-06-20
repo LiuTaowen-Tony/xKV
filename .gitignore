@@ -163,3 +163,4 @@ cython_debug/
 
 evaluate/data/ruler/data
 kv_cache_plots/
+lightning_logs/

@@ -7,8 +7,8 @@ with the new compressor-only saving approach.
 import torch
 import tempfile
 import os
-from train.model import ConvolutionalCompressor, ConvolutionalCompressorConfig
-from train.kv_lightning_module import KVCompressorLightningModule
+from src.compressor import ConvolutionalCompressor, ConvolutionalCompressorConfig
+from src.kv_lightning_module import KVCompressorLightningModule
 from utils import load_model_and_tokenizer
 
 
@@ -105,7 +105,7 @@ def test_checkpoint_saving():
 
         # Test loading the compressor directly
         print("\nTesting direct compressor loading...")
-        from train.eval_perplexity_rnn_trained import load_trained_compressor
+        from src.eval_perplexity_rnn_trained import load_trained_compressor
 
         loaded_compressor = load_trained_compressor(checkpoint_path, device="cpu")
 

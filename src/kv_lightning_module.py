@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from typing import Dict, Any, Tuple, Union
 import torchmetrics
 
-from .model import (
+from .compressor import (
     ConvolutionalCompressor,
     ConvolutionalCompressorConfig,
     EnhancedConvolutionalCompressor,
